@@ -87,7 +87,7 @@ def _get_moon_phase_name(url: str | None) -> str:
 def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: str | None = None) -> str | None:
     """Hedef namaz vaktine kalan süreyi hesaplar.
     
-    '2 saat 30 dakika' gibi bir string döner, vakit geçmişse yarının vaktini kullanır.
+    '2 saat 30 dakika 45 saniye' gibi bir string döner, vakit geçmişse yarının vaktini kullanır.
     """
     if not target_time_str:
         return None
@@ -108,19 +108,21 @@ def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: st
             )
 
         diff = target - now
-        total_seconds = diff.total_seconds()
+        total_secs = int(diff.total_seconds())
 
-        if total_seconds <= 0:
+        if total_secs <= 0:
             return "Vakit girdi"
 
-        # Saniyeleri yukarı yuvarla — Diyanet uygulaması ile birebir uyum için
-        total_minutes = math.ceil(total_seconds / 60)
-        hours = total_minutes // 60
-        minutes = total_minutes % 60
+        # Saat, dakika ve saniye olarak ayır
+        hours = total_secs // 3600
+        minutes = (total_secs % 3600) // 60
+        seconds = total_secs % 60
 
         if hours > 0:
-            return f"{hours} saat {minutes} dakika"
-        return f"{minutes} dakika"
+            return f"{hours} saat {minutes} dakika {seconds} saniye"
+        if minutes > 0:
+            return f"{minutes} dakika {seconds} saniye"
+        return f"{seconds} saniye"
 
     except (ValueError, AttributeError):
         return None
@@ -162,128 +164,155 @@ async def async_setup_entry(
 
     entities: list[RamazanBaseSensor] = []
 
-    # Namaz vakti sensörleri
-    for key, config in PRAYER_TIME_SENSORS.items():
-        entities.append(
-            RamazanPrayerTimeSensor(
-                coordinator=coordinator,
-                entry=entry,
-                key=key,
-                name=config["name"],
-                icon=config["icon"],
-            )
-        )
+    # ========================================
+    # 1) Namaz vakitleri (sırayla)
+    # ========================================
 
-    # İftar sensörü (akşam namazı ile aynı)
-    entities.append(
-        RamazanPrayerTimeSensor(
-            coordinator=coordinator,
-            entry=entry,
-            key="maghrib",
-            name=EXTRA_SENSORS["iftar"]["name"],
-            icon=EXTRA_SENSORS["iftar"]["icon"],
-            unique_suffix="iftar",
-        )
-    )
+    # 1. İmsak
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="fajr",
+        name=PRAYER_TIME_SENSORS["fajr"]["name"],
+        icon=PRAYER_TIME_SENSORS["fajr"]["icon"],
+    ))
 
-    # Sahur sensörü (imsak ile aynı)
-    entities.append(
-        RamazanPrayerTimeSensor(
-            coordinator=coordinator,
-            entry=entry,
-            key="fajr",
-            name=EXTRA_SENSORS["sahur"]["name"],
-            icon=EXTRA_SENSORS["sahur"]["icon"],
-            unique_suffix="sahur",
-        )
-    )
+    # 2. Güneş
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="sunrise",
+        name=PRAYER_TIME_SENSORS["sunrise"]["name"],
+        icon=PRAYER_TIME_SENSORS["sunrise"]["icon"],
+    ))
 
-    # Geri sayım sensörleri
-    entities.append(
-        RamazanCountdownSensor(
-            coordinator=coordinator,
-            entry=entry,
-            target_key="maghrib",
-            name=EXTRA_SENSORS["time_to_iftar"]["name"],
-            icon=EXTRA_SENSORS["time_to_iftar"]["icon"],
-            unique_suffix="time_to_iftar",
-        )
-    )
+    # 3. Öğle
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="dhuhr",
+        name=PRAYER_TIME_SENSORS["dhuhr"]["name"],
+        icon=PRAYER_TIME_SENSORS["dhuhr"]["icon"],
+    ))
 
-    entities.append(
-        RamazanCountdownSensor(
-            coordinator=coordinator,
-            entry=entry,
-            target_key="fajr",
-            name=EXTRA_SENSORS["time_to_sahur"]["name"],
-            icon=EXTRA_SENSORS["time_to_sahur"]["icon"],
-            unique_suffix="time_to_sahur",
-        )
-    )
+    # 4. İkindi
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="asr",
+        name=PRAYER_TIME_SENSORS["asr"]["name"],
+        icon=PRAYER_TIME_SENSORS["asr"]["icon"],
+    ))
 
-    # Ek bilgi sensörleri
-    entities.append(
-        RamazanInfoSensor(
-            coordinator=coordinator,
-            entry=entry,
-            data_key="qiblaTime",
-            name=EXTRA_SENSORS["qibla_time"]["name"],
-            icon=EXTRA_SENSORS["qibla_time"]["icon"],
-            unique_suffix="qibla_time",
-        )
-    )
+    # 5. Akşam
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="maghrib",
+        name=PRAYER_TIME_SENSORS["maghrib"]["name"],
+        icon=PRAYER_TIME_SENSORS["maghrib"]["icon"],
+    ))
 
-    entities.append(
-        RamazanInfoSensor(
-            coordinator=coordinator,
-            entry=entry,
-            data_key="hijriDateLong",
-            name=EXTRA_SENSORS["hijri_date"]["name"],
-            icon=EXTRA_SENSORS["hijri_date"]["icon"],
-            unique_suffix="hijri_date",
-        )
-    )
+    # 6. Yatsı
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="isha",
+        name=PRAYER_TIME_SENSORS["isha"]["name"],
+        icon=PRAYER_TIME_SENSORS["isha"]["icon"],
+    ))
 
-    entities.append(
-        RamazanInfoSensor(
-            coordinator=coordinator,
-            entry=entry,
-            data_key="gregorianDateLong",
-            name=EXTRA_SENSORS["gregorian_date"]["name"],
-            icon=EXTRA_SENSORS["gregorian_date"]["icon"],
-            unique_suffix="gregorian_date",
-        )
-    )
+    # ========================================
+    # 2) İftar ve Sahur
+    # ========================================
 
-    entities.append(
-        RamazanInfoSensor(
-            coordinator=coordinator,
-            entry=entry,
-            data_key="astronomicalSunrise",
-            name=EXTRA_SENSORS["astronomical_sunrise"]["name"],
-            icon=EXTRA_SENSORS["astronomical_sunrise"]["icon"],
-            unique_suffix="astronomical_sunrise",
-        )
-    )
+    # 7. İftar (akşam namazı ile aynı)
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="maghrib",
+        name=EXTRA_SENSORS["iftar"]["name"],
+        icon=EXTRA_SENSORS["iftar"]["icon"],
+        unique_suffix="iftar",
+    ))
 
-    entities.append(
-        RamazanInfoSensor(
-            coordinator=coordinator,
-            entry=entry,
-            data_key="astronomicalSunset",
-            name=EXTRA_SENSORS["astronomical_sunset"]["name"],
-            icon=EXTRA_SENSORS["astronomical_sunset"]["icon"],
-            unique_suffix="astronomical_sunset",
-        )
-    )
+    # 8. Sahur (imsak ile aynı)
+    entities.append(RamazanPrayerTimeSensor(
+        coordinator=coordinator, entry=entry,
+        key="fajr",
+        name=EXTRA_SENSORS["sahur"]["name"],
+        icon=EXTRA_SENSORS["sahur"]["icon"],
+        unique_suffix="sahur",
+    ))
 
-    # Ay evresi sensörü
-    entities.append(
-        RamazanMoonPhaseSensor(
-            coordinator=coordinator,
-            entry=entry,
-        )
-    )
+    # ========================================
+    # 3) Geri sayım sensörleri
+    # ========================================
+
+    # 9. İftara Kalan Süre
+    entities.append(RamazanCountdownSensor(
+        coordinator=coordinator, entry=entry,
+        target_key="maghrib",
+        name=EXTRA_SENSORS["time_to_iftar"]["name"],
+        icon=EXTRA_SENSORS["time_to_iftar"]["icon"],
+        unique_suffix="time_to_iftar",
+    ))
+
+    # 10. Sahura Kalan Süre
+    entities.append(RamazanCountdownSensor(
+        coordinator=coordinator, entry=entry,
+        target_key="fajr",
+        name=EXTRA_SENSORS["time_to_sahur"]["name"],
+        icon=EXTRA_SENSORS["time_to_sahur"]["icon"],
+        unique_suffix="time_to_sahur",
+    ))
+
+    # ========================================
+    # 4) Ek bilgi sensörleri
+    # ========================================
+
+    # 11. Kıble Saati
+    entities.append(RamazanInfoSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="qiblaTime",
+        name=EXTRA_SENSORS["qibla_time"]["name"],
+        icon=EXTRA_SENSORS["qibla_time"]["icon"],
+        unique_suffix="qibla_time",
+    ))
+
+    # 12. Hicri Tarih
+    entities.append(RamazanInfoSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="hijriDateLong",
+        name=EXTRA_SENSORS["hijri_date"]["name"],
+        icon=EXTRA_SENSORS["hijri_date"]["icon"],
+        unique_suffix="hijri_date",
+    ))
+
+    # 13. Miladi Tarih
+    entities.append(RamazanInfoSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="gregorianDateLong",
+        name=EXTRA_SENSORS["gregorian_date"]["name"],
+        icon=EXTRA_SENSORS["gregorian_date"]["icon"],
+        unique_suffix="gregorian_date",
+    ))
+
+    # 14. Astronomik Gün Doğumu
+    entities.append(RamazanInfoSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="astronomicalSunrise",
+        name=EXTRA_SENSORS["astronomical_sunrise"]["name"],
+        icon=EXTRA_SENSORS["astronomical_sunrise"]["icon"],
+        unique_suffix="astronomical_sunrise",
+    ))
+
+    # 15. Astronomik Gün Batımı
+    entities.append(RamazanInfoSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="astronomicalSunset",
+        name=EXTRA_SENSORS["astronomical_sunset"]["name"],
+        icon=EXTRA_SENSORS["astronomical_sunset"]["icon"],
+        unique_suffix="astronomical_sunset",
+    ))
+
+    # 16. Ay Evresi
+    entities.append(RamazanMoonPhaseSensor(
+        coordinator=coordinator, entry=entry,
+    ))
 
     async_add_entities(entities)
 
@@ -406,11 +435,11 @@ class RamazanCountdownSensor(RamazanBaseSensor):
         """HA'ya eklendiğinde güncelleme zamanlayıcısını kaydet."""
         await super().async_added_to_hass()
 
-        # Geri sayım doğruluğu için her dakika güncelle
+        # Saniye gösterimi için her saniye güncelle
         self._unsub_timer = async_track_time_interval(
             self.hass,
             self._async_update_countdown,
-            timedelta(minutes=1),
+            timedelta(seconds=1),
         )
 
     async def async_will_remove_from_hass(self) -> None:
