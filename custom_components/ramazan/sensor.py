@@ -364,9 +364,7 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
 
 
 class RamazanPrayerTimeSensor(RamazanBaseSensor):
-    """Namaz vakti sensörü (zaman damgası)."""
-
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    """Namaz vakti sensörü."""
 
     def __init__(
         self,
@@ -388,21 +386,10 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         self._data_key = data_key
 
     @property
-    def native_value(self) -> datetime | None:
-        """Namaz vaktini datetime olarak döner."""
+    def native_value(self) -> str | None:
+        """Namaz vaktini string (HH:MM) olarak döner."""
         data = self._get_today_data()
-        time_str = data.get(self._data_key)
-        if not time_str:
-            return None
-
-        try:
-            # "HH:MM" formatından bugünün tarihiyle datetime oluştur
-            hour, minute = map(int, time_str.split(":"))
-            now = dt_util.now()
-            local_dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-            return local_dt
-        except (ValueError, AttributeError):
-            return None
+        return data.get(self._data_key)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -410,15 +397,17 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         data = self._get_today_data()
         attrs = {}
 
-        # Hicri tarihi nitelik olarak ekle
-        hijri = data.get("hijriDateLong")
-        if hijri:
-            attrs["hicri_tarih"] = hijri
-
-        # Miladi tarihi ekle
-        greg = data.get("gregorianDateLong")
-        if greg:
-            attrs["miladi_tarih"] = greg
+        # Otomasyonlar için arka planda tam timestamp tut
+        time_str = data.get(self._data_key)
+        if time_str:
+            try:
+                hour, minute = map(int, time_str.split(":"))
+                now = dt_util.now()
+                attrs["vakit_timestamp"] = now.replace(
+                    hour=hour, minute=minute, second=0, microsecond=0
+                )
+            except (ValueError, AttributeError):
+                pass
 
         return attrs
 
