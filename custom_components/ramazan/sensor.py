@@ -8,6 +8,7 @@ import logging
 from typing import Any, Callable
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
 )
@@ -17,6 +18,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTRIBUTION,
@@ -362,7 +364,9 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
 
 
 class RamazanPrayerTimeSensor(RamazanBaseSensor):
-    """Namaz vakti sensörü."""
+    """Namaz vakti sensörü (zaman damgası)."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def __init__(
         self,
@@ -384,10 +388,21 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         self._key = key
 
     @property
-    def native_value(self) -> str | None:
-        """Namaz vaktini döner."""
+    def native_value(self) -> datetime | None:
+        """Namaz vaktini datetime olarak döner."""
         data = self._get_today_data()
-        return data.get(self._key)
+        time_str = data.get(self._key)
+        if not time_str:
+            return None
+
+        try:
+            # "HH:MM" formatından bugünün tarihiyle datetime oluştur
+            hour, minute = map(int, time_str.split(":"))
+            now = dt_util.now()
+            local_dt = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            return local_dt
+        except (ValueError, AttributeError):
+            return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
