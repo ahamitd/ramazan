@@ -1,0 +1,37 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Ülke Seçimi",
+                "description": "Namaz vakitlerini almak istediğiniz ülkeyi seçin.",
+                "data": {
+                    "country": "Ülke"
+                }
+            },
+            "state": {
+                "title": "İl Seçimi",
+                "description": "{country} ülkesindeki ili seçin.",
+                "data": {
+                    "state": "İl"
+                }
+            },
+            "city": {
+                "title": "İlçe Seçimi",
+                "description": "{state}, {country} ilçesini seçin.",
+                "data": {
+                    "city": "İlçe"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Diyanet API'sine bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.",
+            "invalid_country": "Geçersiz ülke seçimi.",
+            "invalid_state": "Geçersiz il seçimi.",
+            "invalid_city": "Geçersiz ilçe seçimi.",
+            "already_configured": "Bu konum zaten yapılandırılmış."
+        },
+        "abort": {
+            "already_configured": "Bu konum zaten eklenmiş."
+        }
+    }
+}
