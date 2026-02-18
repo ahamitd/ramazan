@@ -266,8 +266,8 @@ async def async_setup_entry(
     # 4) Ek bilgi sensörleri
     # ========================================
 
-    # 11. Kıble Saati
-    entities.append(RamazanInfoSensor(
+    # 11. Kıble Saati (zaman damgası)
+    entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
         data_key="qiblaTime",
         name=EXTRA_SENSORS["qibla_time"]["name"],
@@ -293,8 +293,8 @@ async def async_setup_entry(
         unique_suffix="gregorian_date",
     ))
 
-    # 14. Astronomik Gün Doğumu
-    entities.append(RamazanInfoSensor(
+    # 14. Astronomik Gün Doğumu (zaman damgası)
+    entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
         data_key="astronomicalSunrise",
         name=EXTRA_SENSORS["astronomical_sunrise"]["name"],
@@ -302,8 +302,8 @@ async def async_setup_entry(
         unique_suffix="astronomical_sunrise",
     ))
 
-    # 15. Astronomik Gün Batımı
-    entities.append(RamazanInfoSensor(
+    # 15. Astronomik Gün Batımı (zaman damgası)
+    entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
         data_key="astronomicalSunset",
         name=EXTRA_SENSORS["astronomical_sunset"]["name"],
@@ -372,7 +372,7 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         self,
         coordinator: RamazanDataUpdateCoordinator,
         entry: ConfigEntry,
-        key: str,
+        data_key: str,
         name: str,
         icon: str,
         unique_suffix: str | None = None,
@@ -383,15 +383,15 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
             entry=entry,
             name=name,
             icon=icon,
-            unique_suffix=unique_suffix or key,
+            unique_suffix=unique_suffix or data_key,
         )
-        self._key = key
+        self._data_key = data_key
 
     @property
     def native_value(self) -> datetime | None:
         """Namaz vaktini datetime olarak döner."""
         data = self._get_today_data()
-        time_str = data.get(self._key)
+        time_str = data.get(self._data_key)
         if not time_str:
             return None
 

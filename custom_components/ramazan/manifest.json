@@ -1,7 +1,9 @@
 {
     "domain": "ramazan",
     "name": "Ramazan",
-    "codeowners": ["@ahamitd"],
+    "codeowners": [
+        "@ahamitd"
+    ],
     "config_flow": true,
     "dependencies": [],
     "documentation": "https://github.com/ahamitd/ramazan",
@@ -10,5 +12,5 @@
     "requirements": [
         "aiohttp>=3.8.0"
     ],
-    "version": "1.0.0"
+    "version": "1.0.3"
 }
