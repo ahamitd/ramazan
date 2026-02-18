@@ -173,7 +173,7 @@ async def async_setup_entry(
     # 1. İmsak
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="fajr",
+        data_key="fajr",
         name=PRAYER_TIME_SENSORS["fajr"]["name"],
         icon=PRAYER_TIME_SENSORS["fajr"]["icon"],
     ))
@@ -181,7 +181,7 @@ async def async_setup_entry(
     # 2. Güneş
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="sunrise",
+        data_key="sunrise",
         name=PRAYER_TIME_SENSORS["sunrise"]["name"],
         icon=PRAYER_TIME_SENSORS["sunrise"]["icon"],
     ))
@@ -189,7 +189,7 @@ async def async_setup_entry(
     # 3. Öğle
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="dhuhr",
+        data_key="dhuhr",
         name=PRAYER_TIME_SENSORS["dhuhr"]["name"],
         icon=PRAYER_TIME_SENSORS["dhuhr"]["icon"],
     ))
@@ -197,7 +197,7 @@ async def async_setup_entry(
     # 4. İkindi
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="asr",
+        data_key="asr",
         name=PRAYER_TIME_SENSORS["asr"]["name"],
         icon=PRAYER_TIME_SENSORS["asr"]["icon"],
     ))
@@ -205,7 +205,7 @@ async def async_setup_entry(
     # 5. Akşam
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="maghrib",
+        data_key="maghrib",
         name=PRAYER_TIME_SENSORS["maghrib"]["name"],
         icon=PRAYER_TIME_SENSORS["maghrib"]["icon"],
     ))
@@ -213,7 +213,7 @@ async def async_setup_entry(
     # 6. Yatsı
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="isha",
+        data_key="isha",
         name=PRAYER_TIME_SENSORS["isha"]["name"],
         icon=PRAYER_TIME_SENSORS["isha"]["icon"],
     ))
@@ -225,7 +225,7 @@ async def async_setup_entry(
     # 7. İftar (akşam namazı ile aynı)
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="maghrib",
+        data_key="maghrib",
         name=EXTRA_SENSORS["iftar"]["name"],
         icon=EXTRA_SENSORS["iftar"]["icon"],
         unique_suffix="iftar",
@@ -234,7 +234,7 @@ async def async_setup_entry(
     # 8. Sahur (imsak ile aynı)
     entities.append(RamazanPrayerTimeSensor(
         coordinator=coordinator, entry=entry,
-        key="fajr",
+        data_key="fajr",
         name=EXTRA_SENSORS["sahur"]["name"],
         icon=EXTRA_SENSORS["sahur"]["icon"],
         unique_suffix="sahur",
