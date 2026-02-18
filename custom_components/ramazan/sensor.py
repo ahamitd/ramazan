@@ -397,6 +397,15 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         data = self._get_today_data()
         attrs = {}
 
+        # Hicri ve Miladi tarihleri geri ekle
+        hijri = data.get("hijriDateLong")
+        if hijri:
+            attrs["hicri_tarih"] = hijri
+
+        greg = data.get("gregorianDateLong")
+        if greg:
+            attrs["miladi_tarih"] = greg
+
         # Otomasyonlar için arka planda tam timestamp tut
         time_str = data.get(self._data_key)
         if time_str:

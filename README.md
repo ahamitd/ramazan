@@ -56,6 +56,20 @@ Diyanet İşleri Başkanlığı'nın API'sini kullanarak namaz vakitlerini, ifta
 4. **İl** seçin (örn: İstanbul)
 5. **İlçe** seçin (örn: Kadıköy)
 
+## 🤖 Otomasyon Örneği
+
+Namaz vakitlerinde (İftar/Sahur vb.) otomasyon çalıştırmak isterseniz, sensörlerin ana değeri sade saat ("18:46") olduğu için özelliklerindeki `vakit_timestamp` bilgisini kullanmalısınız.
+
+Örnek (İftarda bildirim gönder):
+```yaml
+alias: "İftar Bildirimi"
+trigger:
+  - platform: time
+    at: sensor.ramazan_iftar
+    # veya özellikteki tam timestamp'i kullanabilen diğer yöntemler
+```
+*Not: Sensörlerin `vakit_timestamp` özelliği tam bir zaman damgası içerir ve otomasyon tetikleyicileri ile uyumludur.*
+
 ## 📡 Veri Kaynağı
 
 Veriler [T.C. Diyanet İşleri Başkanlığı](https://www.diyanet.gov.tr/) tarafından sağlanmaktadır.
