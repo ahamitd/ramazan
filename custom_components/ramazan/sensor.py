@@ -1,6 +1,7 @@
-"""Sensor platform for Ramazan integration."""
+"""Ramazan entegrasyonu için sensör platformu."""
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
@@ -30,18 +31,18 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class RamazanSensorEntityDescription(SensorEntityDescription):
-    """Describes Ramazan sensor entity."""
+    """Ramazan sensör entity tanımı."""
 
     value_fn: Callable[[dict[str, Any]], Any] | None = None
     sensor_type: str = ""
 
 
 def _get_moon_phase_name(url: str | None) -> str:
-    """Extract moon phase name from URL."""
+    """URL'den ay evresi adını çıkarır."""
     if not url:
         return "Bilinmiyor"
 
-    # Map image filenames to Turkish moon phase names
+    # Görsel dosya adlarını Türkçe ay evresi adlarına eşle
     phase_map = {
         "ictima": "İçtima (Yeni Ay)",
         "ruyet": "Hilal (Rüyet)",
@@ -75,7 +76,7 @@ def _get_moon_phase_name(url: str | None) -> str:
         "sd7": "Son Dördün (7. Gün)",
     }
 
-    # Extract filename without extension from URL
+    # URL'den uzantısız dosya adını çıkar
     try:
         filename = url.rsplit("/", 1)[-1].rsplit(".", 1)[0]
         return phase_map.get(filename, filename)
@@ -84,9 +85,9 @@ def _get_moon_phase_name(url: str | None) -> str:
 
 
 def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: str | None = None) -> str | None:
-    """Calculate remaining time to a target prayer time.
+    """Hedef namaz vaktine kalan süreyi hesaplar.
     
-    Returns a string like '2 saat 30 dakika' or None if target has passed.
+    '2 saat 30 dakika' gibi bir string döner, vakit geçmişse yarının vaktini kullanır.
     """
     if not target_time_str:
         return None
@@ -94,11 +95,11 @@ def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: st
     now = datetime.now()
 
     try:
-        # Parse target time for today
+        # Bugün için hedef vakti parse et
         hour, minute = map(int, target_time_str.split(":"))
         target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-        # If target time has passed today, use tomorrow's time
+        # Bugünkü vakit geçtiyse yarının vaktini kullan
         if target <= now:
             if tomorrow_time_str:
                 hour, minute = map(int, tomorrow_time_str.split(":"))
@@ -107,13 +108,15 @@ def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: st
             )
 
         diff = target - now
-        total_seconds = int(diff.total_seconds())
+        total_seconds = diff.total_seconds()
 
         if total_seconds <= 0:
             return "Vakit girdi"
 
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
+        # Saniyeleri yukarı yuvarla — Diyanet uygulaması ile birebir uyum için
+        total_minutes = math.ceil(total_seconds / 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
 
         if hours > 0:
             return f"{hours} saat {minutes} dakika"
@@ -124,7 +127,7 @@ def _calculate_time_remaining(target_time_str: str | None, tomorrow_time_str: st
 
 
 def _time_remaining_minutes(target_time_str: str | None, tomorrow_time_str: str | None = None) -> int | None:
-    """Calculate remaining minutes to a target prayer time as integer."""
+    """Hedef namaz vaktine kalan dakikayı tam sayı olarak hesaplar."""
     if not target_time_str:
         return None
 
@@ -142,7 +145,8 @@ def _time_remaining_minutes(target_time_str: str | None, tomorrow_time_str: str 
             )
 
         diff = target - now
-        return max(0, int(diff.total_seconds()) // 60)
+        # Saniyeleri yukarı yuvarla — Diyanet uygulaması ile birebir uyum için
+        return max(0, math.ceil(diff.total_seconds() / 60))
 
     except (ValueError, AttributeError):
         return None
@@ -153,12 +157,12 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Ramazan sensor entities from a config entry."""
+    """Config entry'den Ramazan sensör entity'lerini kur."""
     coordinator: RamazanDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[RamazanSensor] = []
+    entities: list[RamazanBaseSensor] = []
 
-    # Prayer time sensors
+    # Namaz vakti sensörleri
     for key, config in PRAYER_TIME_SENSORS.items():
         entities.append(
             RamazanPrayerTimeSensor(
@@ -170,7 +174,7 @@ async def async_setup_entry(
             )
         )
 
-    # Iftar sensor (same as maghrib)
+    # İftar sensörü (akşam namazı ile aynı)
     entities.append(
         RamazanPrayerTimeSensor(
             coordinator=coordinator,
@@ -182,7 +186,7 @@ async def async_setup_entry(
         )
     )
 
-    # Sahur sensor (same as fajr)
+    # Sahur sensörü (imsak ile aynı)
     entities.append(
         RamazanPrayerTimeSensor(
             coordinator=coordinator,
@@ -194,7 +198,7 @@ async def async_setup_entry(
         )
     )
 
-    # Countdown sensors
+    # Geri sayım sensörleri
     entities.append(
         RamazanCountdownSensor(
             coordinator=coordinator,
@@ -217,7 +221,7 @@ async def async_setup_entry(
         )
     )
 
-    # Extra info sensors
+    # Ek bilgi sensörleri
     entities.append(
         RamazanInfoSensor(
             coordinator=coordinator,
@@ -273,7 +277,7 @@ async def async_setup_entry(
         )
     )
 
-    # Moon phase sensor
+    # Ay evresi sensörü
     entities.append(
         RamazanMoonPhaseSensor(
             coordinator=coordinator,
@@ -285,7 +289,7 @@ async def async_setup_entry(
 
 
 class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorEntity):
-    """Base class for Ramazan sensors."""
+    """Ramazan sensörleri için temel sınıf."""
 
     _attr_has_entity_name = True
     _attr_attribution = ATTRIBUTION
@@ -298,7 +302,7 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
         icon: str,
         unique_suffix: str,
     ) -> None:
-        """Initialize the sensor."""
+        """Sensörü başlat."""
         super().__init__(coordinator)
         self._attr_name = name
         self._attr_icon = icon
@@ -307,7 +311,7 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device info."""
+        """Cihaz bilgisini döner."""
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=f"Ramazan - {self.coordinator.location_name}",
@@ -316,20 +320,20 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
         )
 
     def _get_today_data(self) -> dict[str, Any]:
-        """Get today's prayer data."""
+        """Bugünün namaz vakti verisini döner."""
         if self.coordinator.data:
             return self.coordinator.data.get("today", {}) or {}
         return {}
 
     def _get_tomorrow_data(self) -> dict[str, Any]:
-        """Get tomorrow's prayer data."""
+        """Yarının namaz vakti verisini döner."""
         if self.coordinator.data:
             return self.coordinator.data.get("tomorrow", {}) or {}
         return {}
 
 
 class RamazanPrayerTimeSensor(RamazanBaseSensor):
-    """Sensor for individual prayer times."""
+    """Namaz vakti sensörü."""
 
     def __init__(
         self,
@@ -340,7 +344,7 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
         icon: str,
         unique_suffix: str | None = None,
     ) -> None:
-        """Initialize the prayer time sensor."""
+        """Namaz vakti sensörünü başlat."""
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -352,22 +356,22 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        """Return the prayer time."""
+        """Namaz vaktini döner."""
         data = self._get_today_data()
         return data.get(self._key)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return additional attributes."""
+        """Ek durum niteliklerini döner."""
         data = self._get_today_data()
         attrs = {}
 
-        # Add Hijri date as an attribute
+        # Hicri tarihi nitelik olarak ekle
         hijri = data.get("hijriDateLong")
         if hijri:
             attrs["hicri_tarih"] = hijri
 
-        # Add Gregorian date
+        # Miladi tarihi ekle
         greg = data.get("gregorianDateLong")
         if greg:
             attrs["miladi_tarih"] = greg
@@ -376,7 +380,7 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
 
 
 class RamazanCountdownSensor(RamazanBaseSensor):
-    """Sensor for countdown to iftar/sahur."""
+    """İftar/Sahur geri sayım sensörü."""
 
     def __init__(
         self,
@@ -387,7 +391,7 @@ class RamazanCountdownSensor(RamazanBaseSensor):
         icon: str,
         unique_suffix: str,
     ) -> None:
-        """Initialize the countdown sensor."""
+        """Geri sayım sensörünü başlat."""
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -399,10 +403,10 @@ class RamazanCountdownSensor(RamazanBaseSensor):
         self._unsub_timer = None
 
     async def async_added_to_hass(self) -> None:
-        """Register update interval when added to hass."""
+        """HA'ya eklendiğinde güncelleme zamanlayıcısını kaydet."""
         await super().async_added_to_hass()
 
-        # Update every minute for countdown accuracy
+        # Geri sayım doğruluğu için her dakika güncelle
         self._unsub_timer = async_track_time_interval(
             self.hass,
             self._async_update_countdown,
@@ -410,19 +414,19 @@ class RamazanCountdownSensor(RamazanBaseSensor):
         )
 
     async def async_will_remove_from_hass(self) -> None:
-        """Unregister update interval."""
+        """HA'dan kaldırılırken zamanlayıcıyı temizle."""
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
 
     @callback
     def _async_update_countdown(self, _now=None) -> None:
-        """Update the countdown value."""
+        """Geri sayım değerini güncelle."""
         self.async_write_ha_state()
 
     @property
     def native_value(self) -> str | None:
-        """Return the countdown string."""
+        """Geri sayım metnini döner."""
         today_data = self._get_today_data()
         tomorrow_data = self._get_tomorrow_data()
 
@@ -433,7 +437,7 @@ class RamazanCountdownSensor(RamazanBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return additional attributes including minutes."""
+        """Dakika bilgisi dahil ek nitelikleri döner."""
         today_data = self._get_today_data()
         tomorrow_data = self._get_tomorrow_data()
 
@@ -453,7 +457,7 @@ class RamazanCountdownSensor(RamazanBaseSensor):
 
 
 class RamazanInfoSensor(RamazanBaseSensor):
-    """Sensor for extra information (qibla time, dates, etc.)."""
+    """Ek bilgi sensörü (kıble saati, tarihler vb.)."""
 
     def __init__(
         self,
@@ -464,7 +468,7 @@ class RamazanInfoSensor(RamazanBaseSensor):
         icon: str,
         unique_suffix: str,
     ) -> None:
-        """Initialize the info sensor."""
+        """Bilgi sensörünü başlat."""
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -476,20 +480,20 @@ class RamazanInfoSensor(RamazanBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        """Return the sensor value."""
+        """Sensör değerini döner."""
         data = self._get_today_data()
         return data.get(self._data_key)
 
 
 class RamazanMoonPhaseSensor(RamazanBaseSensor):
-    """Sensor for moon phase."""
+    """Ay evresi sensörü."""
 
     def __init__(
         self,
         coordinator: RamazanDataUpdateCoordinator,
         entry: ConfigEntry,
     ) -> None:
-        """Initialize the moon phase sensor."""
+        """Ay evresi sensörünü başlat."""
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -500,14 +504,14 @@ class RamazanMoonPhaseSensor(RamazanBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        """Return the moon phase name."""
+        """Ay evresi adını döner."""
         data = self._get_today_data()
         url = data.get("shapeMoonUrl")
         return _get_moon_phase_name(url)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return moon image URL as attribute."""
+        """Ay görseli URL'sini nitelik olarak döner."""
         data = self._get_today_data()
         attrs = {}
         url = data.get("shapeMoonUrl")
