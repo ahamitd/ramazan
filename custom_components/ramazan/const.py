@@ -103,4 +103,13 @@ EXTRA_SENSORS = {
         "name": "Ay Evresi",
         "icon": "mdi:moon-waning-crescent",
     },
+    "iftar_time": {
+        "name": "İftar Zamanı",
+        "icon": "mdi:clock-check",
+    },
+    "sahur_time": {
+        "name": "Sahur Zamanı",
+        "icon": "mdi:clock-check",
+    },
 }
+

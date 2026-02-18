@@ -316,6 +316,28 @@ async def async_setup_entry(
         coordinator=coordinator, entry=entry,
     ))
 
+    # ========================================
+    # 5) Otomasyon için özel zaman damgaları
+    # ========================================
+
+    # 17. İftar Zamanı (Zaman damgası)
+    entities.append(RamazanTimestampSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="maghrib",
+        name=EXTRA_SENSORS["iftar_time"]["name"],
+        icon=EXTRA_SENSORS["iftar_time"]["icon"],
+        unique_suffix="iftar_time",
+    ))
+
+    # 18. Sahur Zamanı (Zaman damgası)
+    entities.append(RamazanTimestampSensor(
+        coordinator=coordinator, entry=entry,
+        data_key="fajr",
+        name=EXTRA_SENSORS["sahur_time"]["name"],
+        icon=EXTRA_SENSORS["sahur_time"]["icon"],
+        unique_suffix="sahur_time",
+    ))
+
     async_add_entities(entities)
 
 
@@ -419,6 +441,46 @@ class RamazanPrayerTimeSensor(RamazanBaseSensor):
                 pass
 
         return attrs
+
+
+class RamazanTimestampSensor(RamazanBaseSensor):
+    """Otomasyonlar için zaman damgalı sensör."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(
+        self,
+        coordinator: RamazanDataUpdateCoordinator,
+        entry: ConfigEntry,
+        data_key: str,
+        name: str,
+        icon: str,
+        unique_suffix: str,
+    ) -> None:
+        """Zaman damgalı sensörü başlat."""
+        super().__init__(
+            coordinator=coordinator,
+            entry=entry,
+            name=name,
+            icon=icon,
+            unique_suffix=unique_suffix,
+        )
+        self._data_key = data_key
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Vakit zamanını datetime olarak döner."""
+        data = self._get_today_data()
+        time_str = data.get(self._data_key)
+        if not time_str:
+            return None
+
+        try:
+            hour, minute = map(int, time_str.split(":"))
+            now = dt_util.now()
+            return now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        except (ValueError, AttributeError):
+            return None
 
 
 class RamazanCountdownSensor(RamazanBaseSensor):
