@@ -31,6 +31,8 @@ class RamazanDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api = DiyanetApiClient(session)
 
         self._monthly_data: list[dict[str, Any]] = []
+        # Cached data for fallback when API is unreachable
+        self._cached_data: dict[str, Any] | None = None
 
         super().__init__(
             hass,
@@ -76,18 +78,32 @@ class RamazanDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 today_data = self._monthly_data[0] if self._monthly_data else {}
 
-            # Build result
+            # Build result and cache it for future fallback
             result = {
                 "today": today_data,
                 "tomorrow": tomorrow_data,
                 "monthly": self._monthly_data,
             }
+            self._cached_data = result
 
             return result
 
         except DiyanetApiError as err:
+            if self._cached_data is not None:
+                _LOGGER.warning(
+                    "Error fetching Diyanet data (%s). Using cached data from last successful fetch.",
+                    err,
+                )
+                return self._cached_data
             raise UpdateFailed(f"Error fetching Diyanet data: {err}") from err
+
         except Exception as err:
+            if self._cached_data is not None:
+                _LOGGER.warning(
+                    "Unexpected error fetching prayer time data (%s). Using cached data.",
+                    err,
+                )
+                return self._cached_data
             _LOGGER.exception("Unexpected error fetching prayer time data")
             raise UpdateFailed(f"Unexpected error: {err}") from err
 

@@ -22,6 +22,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Request timeout in seconds
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=15)
+
 
 class DiyanetApiError(Exception):
     """Exception for Diyanet API errors."""
@@ -57,6 +60,7 @@ class DiyanetApiClient:
                     "Content-Type": "application/x-www-form-urlencoded",
                     "User-Agent": "dib_super_app/40 CFNetwork/3860.300.31 Darwin/25.2.0",
                 },
+                timeout=REQUEST_TIMEOUT,
             ) as resp:
                 if resp.status != 200:
                     raise DiyanetApiError(
@@ -72,6 +76,8 @@ class DiyanetApiClient:
 
         except aiohttp.ClientError as err:
             raise DiyanetApiError(f"Connection error during auth: {err}") from err
+        except TimeoutError as err:
+            raise DiyanetApiError(f"Auth request timed out: {err}") from err
 
     def _get_headers(self) -> dict[str, str]:
         """Get request headers with auth token."""
@@ -95,6 +101,7 @@ class DiyanetApiClient:
             async with self._session.get(
                 url,
                 headers=self._get_headers(),
+                timeout=REQUEST_TIMEOUT,
             ) as resp:
                 if resp.status != 200:
                     raise DiyanetApiError(
@@ -113,6 +120,8 @@ class DiyanetApiClient:
 
         except aiohttp.ClientError as err:
             raise DiyanetApiError(f"Connection error: {err}") from err
+        except TimeoutError as err:
+            raise DiyanetApiError(f"Request timed out: {err}") from err
 
     async def get_countries(self) -> list[dict[str, Any]]:
         """Get list of countries."""
