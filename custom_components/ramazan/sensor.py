@@ -367,7 +367,7 @@ class RamazanBaseSensor(CoordinatorEntity[RamazanDataUpdateCoordinator], SensorE
         """Cihaz bilgisini döner."""
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=f"Ramazan - {self.coordinator.location_name}",
+            name=f"VakitHub - {self.coordinator.location_name}",
             manufacturer="Diyanet İşleri Başkanlığı",
             model="Namaz Vakitleri",
         )
