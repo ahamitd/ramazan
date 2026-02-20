@@ -1,5 +1,9 @@
 # 🕌 VakitHub - Home Assistant Entegrasyonu
 
+<p align="center">
+  <img src="custom_components/ramazan/icon.png" alt="VakitHub Logo" width="128" height="128">
+</p>
+
 Diyanet İşleri Başkanlığı'nın API'sini kullanarak namaz vakitlerini, iftar/sahur saatlerini ve geri sayım sayaçlarını Home Assistant'a getiren özel entegrasyon.
 
 ## ✨ Özellikler
